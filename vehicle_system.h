@@ -11,6 +11,7 @@ typedef struct Engine {
     float current_boost;
     float heat_level;
     float cooling_rate;      // Base radiator efficiency per second
+    float heat_penalty;      // Base heat accumulation rate
     float synergy_multiplier;
 } Engine;
 

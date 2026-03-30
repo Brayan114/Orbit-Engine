@@ -4,6 +4,7 @@
 #include "rlgl.h"       // Required for 3D transformations
 #include <stdio.h>      // We need this to format our text strings
 #include <math.h>       // Required for sinf(), cosf(), and sqrtf()
+#include <string.h>     // Required for strcmp()
 
 int main(void) {
     // 1. Initialize the Window
@@ -38,6 +39,34 @@ int main(void) {
         Vector3 right = { cosf(myCar.rotation), 0.0f, -sinf(myCar.rotation) };
         float currentSpeedMagnitude = Vector3Length(myCar.velocity);
 
+        // --- GARAGE INTERACTION ---
+        if (inGarage) {
+            // Part 1: Intake Toggle
+            if (IsKeyPressed(KEY_ONE)) {
+                if (myCar.equipped_parts[PART_INTAKE].hp_modifier == 0.0f) 
+                    myCar.equipped_parts[PART_INTAKE] = GetNovaLinkIntake();
+                else 
+                    myCar.equipped_parts[PART_INTAKE] = GetStockIntake();
+                ApplyParts(&myCar);
+            }
+            // Part 2: Turbo Toggle
+            if (IsKeyPressed(KEY_TWO)) {
+                if (myCar.equipped_parts[PART_TURBO].hp_modifier == 0.0f) 
+                    myCar.equipped_parts[PART_TURBO] = GetVortexTurbo();
+                else 
+                    myCar.equipped_parts[PART_TURBO] = GetStockTurbo();
+                ApplyParts(&myCar);
+            }
+            // Part 3: Radiator Toggle
+            if (IsKeyPressed(KEY_THREE)) {
+                if (myCar.equipped_parts[PART_RADIATOR].cooling_modifier == 1.0f) 
+                    myCar.equipped_parts[PART_RADIATOR] = GetAetherRadiator();
+                else 
+                    myCar.equipped_parts[PART_RADIATOR] = GetStockRadiator();
+                ApplyParts(&myCar);
+            }
+        }
+
         // --- CORE GAMEPLAY LOGIC (Physics & Tuning) ---
         // We only update physics if the car is NOT in the garage
         if (!inGarage) {
@@ -57,8 +86,8 @@ int main(void) {
                 myCar.velocity.x += forward.x * thrust;
                 myCar.velocity.z += forward.z * thrust;
 
-                // Engine Heating
-                float heatingRate = (currentSpeedMagnitude * 0.15f) * (myCar.engine.base_hp / 150.0f);
+                // Engine Heating: Scaled by HP and the part-specific Heat Penalty
+                float heatingRate = (currentSpeedMagnitude * 0.15f) * (myCar.engine.base_hp / 150.0f) + myCar.engine.heat_penalty;
                 myCar.engine.heat_level += heatingRate * dt;
             } else {
                 // Cooling: Uses the dynamic cooling_rate from our inventory/stat system
@@ -84,7 +113,12 @@ int main(void) {
             if (forwardSpeed > 0) forwardSpeed = fmaxf(0, forwardSpeed - dragForce * dt);
             else if (forwardSpeed < 0) forwardSpeed = fminf(0, forwardSpeed + dragForce * dt);
 
-            forwardSpeed *= 0.99f;
+            // --- ROLL RESISTANCE & ENGINE SEIZURE ---
+            if (myCar.engine.heat_level >= 100.0f) {
+                forwardSpeed *= 0.95f; // Seized block: Heavy mechanical resistance
+            } else {
+                forwardSpeed *= 0.99f; // Normal smooth rolling resistance
+            }
             lateralSpeed *= 0.95f;
 
             myCar.velocity.x = (forward.x * forwardSpeed) + (right.x * lateralSpeed);
@@ -173,11 +207,11 @@ int main(void) {
                 DrawRectangleLines(screenWidth/2 - 150, screenHeight/2 - 100, 300, 200, RAYWHITE);
                 
                 DrawText("MECHANIC GARAGE", screenWidth/2 - 80, screenHeight/2 - 80, 20, GREEN);
-                DrawText("Time stands still here...", screenWidth/2 - 70, screenHeight/2 - 50, 10, LIGHTGRAY);
+                DrawText("Press 1, 2, or 3 to swap parts", screenWidth/2 - 75, screenHeight/2 - 50, 10, LIGHTGRAY);
                 
                 DrawText("Currently Equipped:", screenWidth/2 - 130, screenHeight/2 - 10, 10, WHITE);
                 for (int i = 0; i < 3; i++) {
-                    DrawText(TextFormat("- %s", myCar.equipped_parts[i].name), screenWidth/2 - 120, screenHeight/2 + 10 + (i * 20), 10, SKYBLUE);
+                    DrawText(TextFormat("[%d] %s", i + 1, myCar.equipped_parts[i].name), screenWidth/2 - 120, screenHeight/2 + 10 + (i * 20), 10, SKYBLUE);
                 }
                 
                 DrawText("Press TAB to Return to Street", screenWidth/2 - 80, screenHeight/2 + 80, 10, GRAY);

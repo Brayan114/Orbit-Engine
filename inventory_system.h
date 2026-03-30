@@ -16,14 +16,23 @@ typedef struct CarPart {
     PartType type;
     float hp_modifier;       // Additive modifier for engine base horsepower
     float cooling_modifier;  // Multiplicative modifier for the engine radiator efficiency
+    float heat_penalty;      // Additive modifier for engine heat buildup rate
 } CarPart;
 
 // Forward declaration of Car is needed since it's defined in vehicle_system.h
 struct Car;
 
 /**
- * @brief Recalculates engine stats (HP, cooling) by aggregating modifiers from equipped parts.
+ * @brief Recalculates engine stats (HP, cooling, heat penalty) by aggregating modifiers from equipped parts.
  */
 void ApplyParts(struct Car* car);
+
+// Part Factory Functions (for equipping in the garage)
+CarPart GetStockIntake();
+CarPart GetNovaLinkIntake();
+CarPart GetStockTurbo();
+CarPart GetVortexTurbo();
+CarPart GetStockRadiator();
+CarPart GetAetherRadiator();
 
 #endif // INVENTORY_SYSTEM_H
